@@ -1,5 +1,24 @@
-/target
-/tokens
-/logs
+# Maven
+target/
 
-*.credentials
+# Credentials Google OAuth - NE JAMAIS COMMITER
+credentials.json
+oldcredentials.json
+tokens/
+
+# Logs
+logs/
+*.log
+
+# Variables d'environnement
+.env
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.class
+
+# OS
+.DS_Store
+Thumbs.db
