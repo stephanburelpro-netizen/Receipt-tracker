@@ -1,0 +1,159 @@
+<div class="dashboard">
+
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header__title">
+      <span class="header__icon">🧾</span>
+      <h1>Receipt Tracker</h1>
+    </div>
+    <div class="header__actions">
+      <select [(ngModel)]="selectedMonths" (change)="loadDashboard()" class="select">
+        <option [value]="3">3 derniers mois</option>
+        <option [value]="6">6 derniers mois</option>
+        <option [value]="12">12 derniers mois</option>
+        <option [value]="24">24 derniers mois</option>
+      </select>
+      <button (click)="triggerSync()" class="btn btn--primary" [disabled]="syncLoading">
+        @if (syncLoading) { ⏳ Sync en cours... } @else { 🔄 Synchroniser Gmail }
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Loader ──────────────────────────────────────────────────────────── -->
+  @if (loading) {
+    <div class="loader">
+      <div class="spinner"></div>
+      <p>Chargement des données...</p>
+    </div>
+  }
+
+  @if (!loading) {
+
+    <!-- ── KPI Cards ────────────────────────────────────────────────────── -->
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-card__label">Total dépenses</span>
+        <span class="kpi-card__value">{{ formatCurrency(summary.totalPeriode) }}</span>
+        <span class="kpi-card__sub">sur {{ selectedMonths }} mois</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-card__label">Tickets importés</span>
+        <span class="kpi-card__value">{{ summary.nombreTickets }}</span>
+        <span class="kpi-card__sub">tickets de caisse</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-card__label">Panier moyen</span>
+        <span class="kpi-card__value">{{ formatCurrency(summary.moyenneParTicket) }}</span>
+        <span class="kpi-card__sub">par ticket</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-card__label">Magasins</span>
+        <span class="kpi-card__value">{{ summary.parMagasin.length }}</span>
+        <span class="kpi-card__sub">enseignes différentes</span>
+      </div>
+    </section>
+
+    <!-- ── Graphiques ───────────────────────────────────────────────────── -->
+    <section class="charts-grid">
+
+      <div class="card">
+        <h2 class="card__title">📅 Dépenses mensuelles</h2>
+        <div class="chart-container">
+          <canvas #monthlyCanvas></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="card__title">🏪 Répartition par magasin</h2>
+        <div class="chart-container">
+          <canvas #magasinCanvas></canvas>
+        </div>
+        @if (summary.parMagasin.length > 0) {
+          <table class="table">
+            <thead>
+              <tr><th>Magasin</th><th>Tickets</th><th>Total</th></tr>
+            </thead>
+            <tbody>
+              @for (m of summary.parMagasin; track m.magasin) {
+                <tr>
+                  <td>{{ m.magasin }}</td>
+                  <td>{{ m.nombreTickets }}</td>
+                  <td>{{ formatCurrency(m.total) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+
+    </section>
+
+    <!-- ── Évolution prix produit ────────────────────────────────────────── -->
+    <section class="card price-search">
+      <h2 class="card__title">📈 Évolution du prix d'un produit</h2>
+
+      <div class="search-bar">
+        <input
+          type="text"
+          [(ngModel)]="searchProduit"
+          placeholder="Ex: Bœuf haché, Lait entier..."
+          class="input"
+          (keyup.enter)="searchPriceHistory()"
+        />
+        <button
+          (click)="searchPriceHistory()"
+          class="btn btn--primary"
+          [disabled]="searchLoading">
+          @if (searchLoading) { ⏳ } @else { 🔍 Rechercher }
+        </button>
+      </div>
+
+      @if (showPriceChart) {
+        <div class="chart-container chart-container--large">
+          <canvas #priceCanvas></canvas>
+        </div>
+      }
+
+      @if (priceHistory.length > 0) {
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Magasin</th>
+              <th>Prix unitaire</th>
+              <th>Prix au kilo</th>
+              <th>Variation</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (h of priceHistory; track h.id) {
+              <tr>
+                <td>{{ h.date }}</td>
+                <td>{{ h.magasin }}</td>
+                <td>{{ formatCurrency(h.prix) }}</td>
+                <td>{{ h.prixAuKilo ? formatCurrency(h.prixAuKilo) + '/kg' : '—' }}</td>
+                <td>
+                  <span [class]="variationClass(h.variationPrixPct)">
+                    @if (h.variationPrixPct !== null) {
+                      {{ h.variationPrixPct >= 0 ? '▲' : '▼' }}
+                      {{ h.variationPrixPct | number:'1.1-1' }}%
+                    } @else {
+                      —
+                    }
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+
+      @if (priceHistory.length === 0 && searchProduit && !searchLoading) {
+        <p class="empty">Aucun résultat pour "{{ searchProduit }}"</p>
+      }
+
+    </section>
+
+  }
+
+</div>
